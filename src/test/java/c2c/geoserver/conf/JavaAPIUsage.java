@@ -6,9 +6,9 @@ package c2c.geoserver.conf;
 public class JavaAPIUsage {
 	 @SuppressWarnings("unused")
 	public static void method() {
-		 Configuration conf = JsonParser.parse("{}");
-		 String json = JsonParser.serialize(conf);
-		 GeoserverConfigurator configurator = new GeoserverConfigurator("http://localhost:8080/geoserver/rest");
+		 Configuration conf = JsonParser.parseConfiguration("{}");
+		 String json = JsonParser.serializeConfiguration(conf);
+		 GeoserverConfigurator configurator = new GeoserverConfigurator("username", "password", "http://localhost:8080/geoserver/rest");
 		 configurator.configure(conf);
 		 Configuration newConfig = configurator.readConfiguration();
 		 configurator.clearConfig();

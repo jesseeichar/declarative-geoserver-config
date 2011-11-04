@@ -24,6 +24,7 @@ import org.apache.http.client.methods.HttpGet
 import org.apache.http.auth.UsernamePasswordCredentials
 import org.apache.http.auth.params.AuthPNames
 import org.apache.http.client.methods.HttpDelete
+import scala.xml.NodeSeq
 
 object Requests {
   def executeOne(request: HttpRequestBase)(implicit credentials:UsernamePasswordCredentials) = executeMany(List(request)).head
@@ -48,16 +49,25 @@ object Requests {
     // Add AuthCache to the execution context
     localContext.setAttribute(ClientContext.AUTH_CACHE, authCache)
 
-    requests.map(r => httpClient.execute(r, localContext))
+    requests.map{r =>
+      println("executing "+r.getMethod+" request: "+r.getURI())
+      httpClient.execute(r, localContext)}
+    
   }
 
-  private def createURI(urlPath:String)(implicit baseURL: URL) = (baseURL.toExternalForm() + "/" + urlPath) 
+  private def createURI(urlPath:String)(implicit baseURL: URL) = 
+    if(urlPath.startsWith("http")) urlPath
+    else (baseURL.toExternalForm() + "/" + urlPath) 
   private def createURIWithParams(urlPath:String, params: Seq[(String, Any)])(implicit baseURL: URL) = {
     
-    val paramString = params.map { case (key, value) => key + "=" + value }.mkString("?", "&", "")
-    createURI(urlPath)   + paramString
+    val paramString = params.map { case (key, value) => key.trim + "=" + value.toString.trim }.mkString("?", "&", "").trim match {
+      case "?" => ""
+      case params => params
+    }
+    createURI(urlPath) + paramString
   }
   def post(urlPath: String, json: JValue)(implicit baseURL: URL) = doCreatePost(urlPath, compact(render(json)), "text/json")
+  def post(urlPath: String, xml: NodeSeq)(implicit baseURL: URL) = doCreatePost(urlPath, xml.toString, "application/xml")
 
   private def doCreatePost(urlPath: String, data: String, contentType: String)(implicit baseURL: URL): HttpPost = {
     val uri = createURI(urlPath)

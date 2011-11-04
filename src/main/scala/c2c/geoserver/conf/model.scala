@@ -1,4 +1,5 @@
 package c2c.geoserver.conf
+import scalax.io.Codec
 
 trait JsonElem
 sealed trait ConfigElem extends JsonElem
@@ -7,11 +8,14 @@ case class Configuration(
     styles:List[Style]=Nil,
     layergroups:List[LayerGroup]=Nil) extends ConfigElem
 
-case class Workspace(name:String, uri:Option[String], default:Option[Boolean]=Some(false), stores:List[Store]) extends ConfigElem
+case class Workspace(name:String, uri:Option[String]=None, default:Option[Boolean]=Some(false), stores:List[Store]) extends ConfigElem
 
 sealed trait Store extends ConfigElem
-case class Shp(path:String) extends Store
-case class ShpDir(path:String, configureAll:Option[Boolean]) extends Store
+/**
+ * @Path path to the shpfile, NOT a URL
+ */
+case class Shp(path:String, charSet:String="UTF-8") extends Store
+case class ShpDir(path:String, charSet:String="UTF-8", configureAll:Option[Boolean]) extends Store
 
 case class ConnectionParam(key:String, value:String)
 case class Database(name:String, params:List[ConnectionParam], tables:List[Table]=Nil, createTables:List[CreateTable]=Nil) extends Store

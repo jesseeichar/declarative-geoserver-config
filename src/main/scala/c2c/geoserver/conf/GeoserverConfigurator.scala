@@ -7,28 +7,26 @@ class GeoserverConfigurator(username: String, password: String, geoserverRestUrl
   implicit val baseURL = new URL(geoserverRestUrl)
   implicit val credentials = new UsernamePasswordCredentials(username, password)
 
-  val requestBuilder = new RestRequestBuilder(new URL(geoserverRestUrl))
+  val requestBuilder = new RestRequestBuilder
   def configure(conf: Configuration) = {
-    val requests = conf.workspaces.map(requestBuilder.toRequest)
+    val requests = conf.workspaces.flatMap(requestBuilder.toRequest(""))
+    executeMany(requests)
   }
 
   def readConfiguration: Configuration = null
 
   def clearConfig() = {
-    val workspaces = GeoserverRequests.workspaces
-    for { 
-      workspace <- workspaces
-//      namespace <- 
-    } yield {
-      val s = GeoserverRequests.datastores(workspace)
-      println(s)
+    import GeoserverRequests._
+    val lgReq = layergroups map {lg => delete(lg.href)} 
+    val layerReq = layers map {l => delete(l.href)} 
+    val wsReq = workspaces flatMap { workspace => 
+      val dsReq = workspace.datastores flatMap {ds => ds.featureTypes.map(ft => delete(ft.href)) :+ delete(ds.href)}
+      val csReq = workspace.coverageStores flatMap {cs => cs.coverages.map(c => delete(c.href)) :+ delete(cs.href)}
+      dsReq ++ csReq :+ delete(workspace.href) 
     }
-  /*  workspaces.foreach { ws =>
-      val deleteResponse = executeOne(delete("workspace."+ws.name))
-      val statusCode = deleteResponse.getStatusLine().getStatusCode()
-      if(statusCode != 200) {
-        println("Unable to delete workspace: "+ws.name+": "+deleteResponse.getStatusLine().getReasonPhrase());
-      }
-    }*/
+    
+    val styleReq = styles map {s => delete(s.href)}
+    
+    executeMany(lgReq ++ layerReq ++ wsReq ++ styleReq)
   }
 }
