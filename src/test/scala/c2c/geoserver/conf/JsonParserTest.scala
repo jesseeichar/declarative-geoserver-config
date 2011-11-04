@@ -33,7 +33,7 @@ class JsonParserTest extends Specification {
         "stores": []
     }]
 }"""
-    val model = JsonParser.parse(conf)
+    val model = JsonParser.parseConfiguration(conf)
     (model.layergroups must haveSize(1)) and
       (model.styles must haveSize(1)) and
       (model.workspaces must haveSize(1))
@@ -45,7 +45,7 @@ class JsonParserTest extends Specification {
         workspaces = List(
           Workspace(
             name = "edit",
-            uri = "http://camptocamp.com/edit",
+            uri = Some("http://camptocamp.com/edit"),
             stores = List(
               Shp(path = "/shp/roads.shp"),
               ShpDir(path = "/shp/countries.shp", configureAll = Some(false))))))
@@ -60,7 +60,7 @@ class JsonParserTest extends Specification {
     val validJson = (workspaceName must_== "edit") and 
     	(stores must contain("/shp/roads.shp", "/shp/countries.shp"))
     	
-    val parsedConfig = JsonParser.parse(json)
+    val parsedConfig = JsonParser.parseConfiguration(json)
     
     validJson and 
     	(parsedConfig.workspaces must haveSize(1)) and
