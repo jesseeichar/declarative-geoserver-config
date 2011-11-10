@@ -25,13 +25,22 @@ class JsonParserTest extends Specification {
         "bounds": "0,0,30,30",
         "layers": ["roads", "regions"]
     }],
-    "workspaces": [
+    "workspaces": [{
+    "name": "edit",
+    "uri": "http://camptocamp.com/edit",
+    "default": false,
+    "stores": [{
+        "jsonClass": "Shp",
+        "path": "/shp/roads.shp",
+        "charSet": "UTF-8"
+    },
     {
-        "name": "default",
-        "uri": "http://camptocamp.com/default"
-        "default": true,
-        "stores": []
+        "jsonClass": "ShpDir",
+        "path": "/shp/countries.shp",
+        "configureAll": false,
+        "charSet": "UTF-8"
     }]
+}]
 }"""
     val model = JsonParser.parseConfiguration(conf)
     (model.layergroups must haveSize(1)) and
@@ -51,6 +60,7 @@ class JsonParserTest extends Specification {
               ShpDir(path = "/shp/countries.shp", configureAll = Some(false))))))
 
     val json = JsonParser.serialize(config)
+    println(json)
     import net.liftweb.json.{parse,DefaultFormats,JString}
     implicit val parseFormats = DefaultFormats // Brings in default date formats etc
     val parsed = parse(json)

@@ -9,5 +9,6 @@ libraryDependencies ++= Seq(
 	"net.liftweb" %% "lift-json" % "2.4-M4",
 	"junit" % "junit" % "4.8" % "test",
 	"org.specs2" %% "specs2" % "1.6.1" % "test",
-  "org.specs2" %% "specs2-scalaz-core" % "6.0.1" % "test")
+    "org.specs2" %% "specs2-scalaz-core" % "6.0.1" % "test")
   
+resolvers += "OSGeo" at "http://download.osgeo.org/webdav/geotools"

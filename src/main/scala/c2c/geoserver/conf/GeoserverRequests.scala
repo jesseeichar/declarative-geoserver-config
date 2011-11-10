@@ -20,6 +20,14 @@ object GeoserverRequests {
     try { (parse(jsonString) \ "workspaces" \ "workspace").extract[List[WorkspaceRawRef]].map(_.toRef) }
     catch parseErrorHandler(jsonString)
   }
+    def namespaces(implicit baseURL: URL, credentials: UsernamePasswordCredentials) = {
+    val get = Requests.get("namespaces.json")
+    val response = Requests.executeOne(get)
+    val jsonString = Resource.fromInputStream(response.getEntity().getContent()).slurpString()
+    try { (parse(jsonString) \ "namespaces" \ "namespace").extract[List[NamespaceRawRef]].map(_.toRef) }
+    catch parseErrorHandler(jsonString)
+  }
+  
   def styles(implicit baseURL: URL, credentials: UsernamePasswordCredentials) = {
     val get = Requests.get("styles.json")
     val response = Requests.executeOne(get)
@@ -61,6 +69,12 @@ object GeoserverJson {
       }
     }
   }
+  case class NamespaceRawRef(name: String, href: String) {
+    def toRef(implicit baseURL: URL, credentials: UsernamePasswordCredentials) = new NamespaceRef(name, href)
+  }
+  class NamespaceRef(val name: String, val href: String)(implicit baseURL: URL, credentials: UsernamePasswordCredentials) extends Ref[Namespace]("namespace")
+  case class Namespace(prefix:String, uri:String, featureTypes:String)
+
   case class WorkspaceRawRef(name: String, href: String) {
     def toRef(implicit baseURL: URL, credentials: UsernamePasswordCredentials) = new WorkspaceRef(name, href)
   }
@@ -103,14 +117,26 @@ object GeoserverJson {
       option.getOrElse(Nil)
     }
   }
-  case class Datastore(name: String, enabled: Boolean, workspace: WorkspaceRawRef, connectionParameters: JObject, __default: Boolean, featureTypes: String)
+  case class Datastore(name: String, enabled: Boolean, workspace: WorkspaceRawRef, connectionParameters: JObject, __default: Boolean, featureTypes: String) {
+    lazy val params:Map[String,String] = {
+      if((connectionParameters \ "entry" \ "@key" \ classOf[JField]).nonEmpty) geoserver212Params(connectionParameters)
+      else Map[String,String]()
+    }
+    def geoserver212Params(connectionParameters: JObject) = {
+      val entries = 
+        (connectionParameters \ "entry").extract[List[Map[String,String]]].map { map =>
+          map("@key") -> map("$")
+        }
+      entries.toMap
+    }
+  }
 
   case class FeatureTypeRawRef(name: String, href: String) {
     def toRef(implicit baseURL: URL, credentials: UsernamePasswordCredentials) = new FeatureTypeRef(name, href)
   }
   class FeatureTypeRef(val name: String, val href: String)(implicit baseURL: URL, credentials: UsernamePasswordCredentials) extends Ref[FeatureType]("featureType")
   case class FeatureType(
-    name: String, nativeName: String, namespace: Namespace, title: String, `abstract`: String,
+    name: String, nativeName: String, namespace: FeatureTypeNamespace, title: String, `abstract`: String,
     keywords: Keywords, nativeCRS: Option[String], latLonBoundingBox: BBox, projectionPolicy: String,
     enabled: Boolean, metadata: JObject, store: FeatureTypeRawRef, attributes: Attributes,
     maxFeatures: Int, numDecimals: Int)
@@ -125,7 +151,7 @@ object GeoserverJson {
   case class Attribute(name: String, minOccurs: Int, maxOccurs: Int, nillable: Boolean, binding: String)
 
   case class BBox(minx: Double, miny: Double, maxx: Double, maxy: Double, crs: String)
-  case class Namespace(name: String, href: String)
+  case class FeatureTypeNamespace(name: String, href: String)
   case class Keywords(strings: List[String])
 
   case class CoverageStoreRawRef(name: String, href: String) {
@@ -150,7 +176,7 @@ object GeoserverJson {
   }
   class CoverageRef(val name: String, val href: String)(implicit baseURL: URL, credentials: UsernamePasswordCredentials) extends Ref[Coverage]("coverage")
   case class Coverage(
-    name: String, nativeName: String, namespace: Namespace, title: String, description: String,
+    name: String, nativeName: String, namespace: FeatureTypeNamespace, title: String, description: String,
     keywords: Keywords, /*nativeCRS: Option[String],nativeBoundingBox:NativeBBox*/ latLonBoundingBox: BBox,
     enabled: Boolean, metadata: JObject, store: FeatureTypeRawRef, grid: Grid, supportedFormats: Formats, interpolationMethods: InterpolationMethods,
     defaultInterpolationMethod: String, dimensions: Dimensions, requestSRS: SRSList, responseSRS: SRSList)
@@ -182,7 +208,7 @@ object GeoserverJson {
     def toRef(implicit baseURL: URL, credentials: UsernamePasswordCredentials) = new LayerRef(name, href)
   }
   class LayerRef(val name: String, val href: String)(implicit baseURL: URL, credentials: UsernamePasswordCredentials) extends Ref[Layer]("layer")
-  case class Layer(name: String, path: String, `type`: String, defaultStyle: StyleRawRef, styles: Styles, resource: JObject, enabled: Boolean, metadata: Option[JObject], attribution: Attribution)
+  case class Layer(name: String, path: Option[String], `type`: String, defaultStyle: StyleRawRef, styles: Styles, resource: JObject, enabled: Boolean, metadata: Option[JObject], attribution: Attribution)
   case class Attribution(title: Option[String], href: Option[String], logoURL: Option[String], logoType: Option[String], logoWidth: Option[Int], logoHeight: Option[Int])
   case class Styles(style: List[StyleRawRef])
 

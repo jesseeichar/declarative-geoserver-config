@@ -12,6 +12,8 @@ class GeoserverRequestsIntegrationTest extends IntegrationSpec {
     "Geoserserver Response JSON parsing".title ^
       "A Geoserver workspaces request should parse out into several workspaces" ! workspacesRequest ^
       "A workspace can be resolved to load the information of that workspace" ! resolveWorkspaces ^
+      "A Geoserver namespaces request should parse out into several namespaces" ! namespacesRequest ^
+      "A namespace can be resolved to load the information of that namespace" ! resolveNamespaces ^
       "A Geoserver datastores request should parse out into several datastores" ! datastoresRequest ^
       "A datastore can be resolved to load the information of that datastore" ! resolveDatastores ^
       "A Geoserver featureTypes request should parse out into several featureTypes" ! featureTypesRequest ^
@@ -26,6 +28,7 @@ class GeoserverRequestsIntegrationTest extends IntegrationSpec {
       "A layergroup can be resolved to load the information of that layergroup" ! resolveLayerGroups
 
   lazy val workspaces = GeoserverRequests.workspaces
+  lazy val namespaces = GeoserverRequests.namespaces
   lazy val datastores = workspaces.flatMap{_.datastores}
   lazy val featuretypes = datastores.flatMap{_.featureTypes}
   lazy val coverageStores = workspaces.flatMap{_.coverageStores}
@@ -36,6 +39,8 @@ class GeoserverRequestsIntegrationTest extends IntegrationSpec {
   
   def workspacesRequest = workspaces must not beEmpty
   def resolveWorkspaces = forall[WorkspaceRef](workspaces,ws => ws.resolved.map(_.name) +" != "+ws.name, ws => ws.resolved.forall(_.name == ws.name))
+  def namespacesRequest = namespaces must not beEmpty
+  def resolveNamespaces = forall[NamespaceRef](namespaces,ns => ns.resolved.map(_.prefix) +" != "+ns.name, ns => ns.resolved.forall(_.prefix == ns.name))
   def datastoresRequest = datastores must not beEmpty
   def resolveDatastores = forall[DatastoreRef](datastores, ds => ds.resolved.map(_.name) +" != "+ds.name, ds => ds.resolved.forall(_.name == ds.name))
   def featureTypesRequest = featuretypes must not beEmpty
