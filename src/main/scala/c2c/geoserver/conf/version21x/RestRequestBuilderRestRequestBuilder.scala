@@ -1,4 +1,6 @@
 package c2c.geoserver.conf
+package version21x
+
 import org.apache.http.client.methods.HttpRequestBase
 import Requests._
 import net.liftweb.json._
@@ -8,7 +10,7 @@ import java.net.URL
 import org.apache.http.auth.UsernamePasswordCredentials
 import scalax.file.Path
 
-class RestRequestBuilder21(implicit baseURL: URL, credentials: UsernamePasswordCredentials) {
+class RestRequestBuilder(implicit baseURL: URL, credentials: UsernamePasswordCredentials) {
 
   def toRequest(path:String)(elem: ConfigElem): Seq[HttpRequestBase] = elem match {
     case c: Configuration => configurationToRequest(path, c)
@@ -67,28 +69,29 @@ class RestRequestBuilder21(implicit baseURL: URL, credentials: UsernamePasswordC
   }
   def postgisToRequest(path:String, postgis: Postgis): Seq[HttpRequestBase] = {
     import Postgis._
+    import Keys._
     val datastoreJson:JObject =
-      ("dataStore" -> {
-        ("name" -> postgis.realName) ~
-        ("description" -> postgis.description.getOrElse("")) ~
-        ("connectionParameters" -> {
-          ("dbtype" -> "postgis") ~
-          ("host" -> postgis.host) ~
-          ("port" -> postgis.port.getOrElse(defaultPort).toString) ~
-          ("database" -> postgis.database) ~
-          ("schema" -> postgis.schema.getOrElse(defaultSchema)) ~
-          ("user" -> postgis.username) ~
-          ("passwd" -> postgis.realPass) ~
-          ("Connection timeout" -> postgis.timeout.getOrElse(defaultTimeout).toString()) ~
-          ("validate connections" -> postgis.validateConnections.getOrElse(defaultValidateConnections).toString()) ~
-          ("max connections" -> postgis.maxConnections.getOrElse(defaultMaxConnections).toString) ~
-          ("min connections" -> postgis.minConnections.getOrElse(defaultMinConnections).toString) ~
-          ("Loose bbox" -> postgis.looseBBox.getOrElse(defaultLooseBBox).toString()) ~
-          ("fetch size" -> postgis.fetchSize.getOrElse(defaultFetchSize).toString()) ~
-          ("Expose primary keys" -> postgis.exposePrimaryKeys.getOrElse(defaultExposePrimaryKeys).toString()) ~
-          ("Max open prepared statements" -> postgis.maxPreparedStatements.getOrElse(defaultMaxPreparedStatements).toString()) ~
-          ("preparedStatements" -> postgis.preparedStatements.getOrElse(defaultPreparedStatements).toString()) ~
-          ("Estimated extends"-> postgis.estimateExtents.getOrElse(defaultEstimatedExtents).toString())
+      (dataStore -> {
+        (Store.name -> postgis.realName) ~
+        (Store.description -> postgis.description.getOrElse("")) ~
+        (Store.connectionParameters -> {
+          (Postgis.dbtype -> Postgis.dbtypeValue) ~
+          (Postgis.host -> postgis.host) ~
+          (Postgis.port -> postgis.port.getOrElse(defaultPort).toString) ~
+          (Postgis.database -> postgis.database) ~
+          (Postgis.schema -> postgis.schema.getOrElse(defaultSchema)) ~
+          (Postgis.user -> postgis.username) ~
+          (Postgis.pass -> postgis.realPass) ~
+          (Postgis.timeout -> postgis.timeout.getOrElse(defaultTimeout).toString()) ~
+          (Postgis.validateConnections -> postgis.validateConnections.getOrElse(defaultValidateConnections).toString()) ~
+          (Postgis.maxConnections -> postgis.maxConnections.getOrElse(defaultMaxConnections).toString) ~
+          (Postgis.minConnections -> postgis.minConnections.getOrElse(defaultMinConnections).toString) ~
+          (Postgis.looseBBox -> postgis.looseBBox.getOrElse(defaultLooseBBox).toString()) ~
+          (Postgis.fetchSize -> postgis.fetchSize.getOrElse(defaultFetchSize).toString()) ~
+          (Postgis.exposePrimaryKeys -> postgis.exposePrimaryKeys.getOrElse(defaultExposePrimaryKeys).toString()) ~
+          (Postgis.maxPreparedStatements -> postgis.maxPreparedStatements.getOrElse(defaultMaxPreparedStatements).toString()) ~
+          (Postgis.preparedStatements -> postgis.preparedStatements.getOrElse(defaultPreparedStatements).toString()) ~
+          (Postgis.estimateExtents -> postgis.estimateExtents.getOrElse(defaultEstimatedExtents).toString())
         })
       })
 

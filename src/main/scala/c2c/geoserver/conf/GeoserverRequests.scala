@@ -117,7 +117,7 @@ object GeoserverJson {
       option.getOrElse(Nil)
     }
   }
-  case class Datastore(name: String, enabled: Boolean, workspace: WorkspaceRawRef, connectionParameters: JObject, __default: Boolean, featureTypes: String) {
+  case class Datastore(name: String, description:Option[String], enabled: Boolean, workspace: WorkspaceRawRef, connectionParameters: JObject, __default: Boolean, featureTypes: String) {
     lazy val params:Map[String,String] = {
       if((connectionParameters \ "entry" \ "@key" \ classOf[JField]).nonEmpty) geoserver212Params(connectionParameters)
       else Map[String,String]()

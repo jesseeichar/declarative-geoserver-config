@@ -7,11 +7,12 @@ class GeoserverConfigurator(username: String, password: String, geoserverRestUrl
   implicit val baseURL = new URL(geoserverRestUrl)
   implicit val credentials = new UsernamePasswordCredentials(username, password)
 
-  val requestBuilder = geoserverVersion match {
-    case ver if ver startsWith "2.1" => new RestRequestBuilder21
+  val (configParamExtractor, requestBuilder) = geoserverVersion match {
+    case ver if ver startsWith "2.1" => (version21x.ConfigParamExtractor, new version21x.RestRequestBuilder)
     case ver => throw new IllegalArgumentException(ver+" is not a supported Geoserver version")
   }
   def configure(conf: Configuration) = {
+    println("Configuring Geoserver: "+geoserverRestUrl+" with configuration:\n"+JsonParser.serializeConfiguration(conf))
     val requests = conf.workspaces.flatMap(requestBuilder.toRequest(""))
     executeMany(requests)
   }
@@ -30,14 +31,16 @@ class GeoserverConfigurator(username: String, password: String, geoserverRestUrl
   }
 
   def dataStores(ws: GeoserverJson.WorkspaceRef): List[Store] = {
-    import ConfigParamExtractor._
+    import configParamExtractor._
     for{
       ds <- ws.datastores
       resolved <- ds.resolved
     } yield {
       resolved match {
         case Shp(shp) => shp
-        case ShpDir(shp) => shp // NOT FINISHED
+        case ShpDir(dir) => dir 
+        case Postgis(postgis) => postgis 
+        // NOT FINISHED
       }
     }
   }

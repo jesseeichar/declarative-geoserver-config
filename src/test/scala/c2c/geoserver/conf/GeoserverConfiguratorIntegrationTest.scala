@@ -45,6 +45,9 @@ class GeoserverConfiguratorIntegrationTest extends IntegrationSpec {
 		    "description": "Spec postgis description",
 		    "name": "SpecPostgis",
 		    "host": "localhost",
+		    "port": 5555,
+		    "timeout": 10,
+		    "schema": "someSchema",
 		  	"username": "www-data",
 		  	"password": "www-data",
 		    "maxConnections": 3,
@@ -55,6 +58,7 @@ class GeoserverConfiguratorIntegrationTest extends IntegrationSpec {
 		    "preparedStatements": true,
 		    "maxPreparedStatements": 10,
 		    "exposePrimaryKeys": true,
+		    "estimateExtents": false,
 		    "database": "geocat"}]
     }]
 }
@@ -62,7 +66,9 @@ class GeoserverConfiguratorIntegrationTest extends IntegrationSpec {
 
   def workspaceConfig = {
     configurator.configure(config)
-    val stores = configurator.readConfiguration.workspaces.collect {
+    println(config.workspaces(0).stores(2).asInstanceOf[Postgis].estimateExtents)
+    val readConfig = configurator.readConfiguration
+    val stores = readConfig.workspaces.collect {
       case ws if config.workspaceMap.contains(ws.name) => ws.stores must haveTheSameElementsAs(config.workspaceMap(ws.name).stores)
     }
     (stores must haveSize(config.workspaces.size)) and
