@@ -22,6 +22,9 @@ class GeoserverConfiguratorIntegrationTest extends IntegrationSpec {
   }
 
   val shpPath = Path.fromString(classOf[GeoserverConfigurator].getResource("SpecSampleShp.shp").getFile)
+  val tifPath = Path.fromString(classOf[GeoserverConfigurator].getResource("SpecSampleTif.tif").getFile)
+  val arcgridPath = Path.fromString(classOf[GeoserverConfigurator].getResource("SpecSampleArcgrid.asc").getFile)
+  val worldImagePath = Path.fromString(classOf[GeoserverConfigurator].getResource("SpecSampleWorldImage.png").getFile)
   /* TODO: json todos
    *  add description, use memory mapped buffers, Create spatial index if missing/outdated, Cache and reuse memory maps
    *  for Shp and ShpDir*/
@@ -33,12 +36,14 @@ class GeoserverConfiguratorIntegrationTest extends IntegrationSpec {
         "default": false,
         "stores": [{
             "jsonClass": "Shp",
+		  	"description": "a shp file for specs test",
 		  	"name": "SpecAddedShape",
 		    "charset": "ISO-8859-1",
             "path": "%s"},
         {
             "jsonClass": "ShpDir",
 		  	"name": "SpecShpDir",
+		    "description": "a dir of shp files for specs test",
             "path": "%s"},
         {
 		    "jsonClass": "Postgis",
@@ -59,10 +64,28 @@ class GeoserverConfiguratorIntegrationTest extends IntegrationSpec {
 		    "maxPreparedStatements": 10,
 		    "exposePrimaryKeys": true,
 		    "estimateExtents": false,
-		    "database": "geocat"}]
+		    "database": "geocat"},
+      {
+		    "jsonClass": "GeoTIFF",
+		    "name": "SpecGeoTIFF",
+		  	"enabled": true,
+		  	"description": "a tif file for specs test",
+		  	"path": "%s"},
+      {
+		    "jsonClass": "Arcgrid",
+		    "name": "SpecArcgrid",
+		  	"enabled": true,
+		  	"description": "a Arcgrid file for specs test",
+		  	"path": "%s"},
+      {
+		    "jsonClass": "WorldImage",
+		    "name": "SpecWorldImage",
+		  	"enabled": true,
+		  	"description": "a WorldImage file for specs test",
+		  	"path": "%s"}]
     }]
 }
-      """.format(shpPath.path, shpPath.parent.get.path))
+      """.format(shpPath.path, shpPath.parent.get.path, tifPath.path, arcgridPath.path, worldImagePath.path))
 
   def workspaceConfig = {
     configurator.configure(config)

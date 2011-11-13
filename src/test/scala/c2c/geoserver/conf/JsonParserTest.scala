@@ -57,7 +57,8 @@ class JsonParserTest extends Specification {
             uri = Some("http://camptocamp.com/edit"),
             stores = List(
               Shp(path = "/shp/roads.shp"),
-              ShpDir(path = "/shp/countries.shp", configureAll = Some(false))))))
+              ShpDir(path = "/shp/countries.shp", configureAll = Some(false)),
+              GeoTIFF(path="/tif/sample.tif")))))
 
     val json = JsonParser.serialize(config)
     println(json)
@@ -74,8 +75,9 @@ class JsonParserTest extends Specification {
     
     validJson and 
     	(parsedConfig.workspaces must haveSize(1)) and
-    	(parsedConfig.workspaces(0).stores must haveSize(2)) and
+    	(parsedConfig.workspaces(0).stores must haveSize(3)) and
     	(parsedConfig.workspaces(0).stores.find(_.isInstanceOf[Shp]) must beSome) and
-		(parsedConfig.workspaces(0).stores.find(_.isInstanceOf[ShpDir]) must beSome)
+		(parsedConfig.workspaces(0).stores.find(_.isInstanceOf[ShpDir]) must beSome) and
+		(parsedConfig.workspaces(0).stores.find(_.isInstanceOf[GeoTIFF]) must beSome)
   }
 }

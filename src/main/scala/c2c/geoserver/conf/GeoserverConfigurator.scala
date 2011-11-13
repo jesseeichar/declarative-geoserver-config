@@ -33,13 +33,14 @@ class GeoserverConfigurator(username: String, password: String, geoserverRestUrl
   def dataStores(ws: GeoserverJson.WorkspaceRef): List[Store] = {
     import configParamExtractor._
     for{
-      ds <- ws.datastores
+      ds <- ws.datastores ++ ws.coverageStores
       resolved <- ds.resolved
     } yield {
       resolved match {
         case Shp(shp) => shp
         case ShpDir(dir) => dir 
         case Postgis(postgis) => postgis 
+        case Raster(raster) => raster 
         // NOT FINISHED
       }
     }

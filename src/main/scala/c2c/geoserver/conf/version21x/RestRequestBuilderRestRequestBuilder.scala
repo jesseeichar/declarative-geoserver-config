@@ -9,7 +9,7 @@ import net.liftweb.json.Xml.toXml
 import java.net.URL
 import org.apache.http.auth.UsernamePasswordCredentials
 import scalax.file.Path
-
+import Keys._
 class RestRequestBuilder(implicit baseURL: URL, credentials: UsernamePasswordCredentials) {
 
   def toRequest(path:String)(elem: ConfigElem): Seq[HttpRequestBase] = elem match {
@@ -20,9 +20,9 @@ class RestRequestBuilder(implicit baseURL: URL, credentials: UsernamePasswordCre
     case shp: Shp => shpToRequest(path, shp)
     case dir: ShpDir => shpDirToRequest(path, dir)
     case postgis: Postgis => postgisToRequest(path, postgis)
-    case database: Database => databaseToRequest(path, database)
+/*    case database: Database => databaseToRequest(path, database)
     case table: Table => tableToRequest(path, table)
-    case table: CreateTable => createTableToRequest(path, table)
+    case table: CreateTable => createTableToRequest(path, table)*/
     case raster: Raster => rasterToRequest(path, raster)
     case layer: Layer => layerToRequest(path, layer)
   }
@@ -47,11 +47,12 @@ class RestRequestBuilder(implicit baseURL: URL, credentials: UsernamePasswordCre
   }
   def shpDirToRequest(path:String, dir: ShpDir): Seq[HttpRequestBase] = {
     val filePath = "file://"+dir.path
-    val datastoreJson:JObject = ("dataStore" -> {
-      ("name" -> dir.realName) ~
-      ("connectionParameters" -> {
-        ("url" -> filePath) ~ 
-        ("charset" -> dir.charset)})})
+    val datastoreJson:JObject = (dataStore -> {
+      (Store.name -> dir.realName) ~
+      (Store.description -> dir.description) ~
+      (Store.connectionParameters -> {
+        (Store.url -> filePath) ~ 
+        (Store.charset -> dir.charset)})})
 
     List(post(path+"/datastores",datastoreJson))
   }
@@ -59,17 +60,17 @@ class RestRequestBuilder(implicit baseURL: URL, credentials: UsernamePasswordCre
   def layerGroupToRequest(path:String, layerGroup: LayerGroup): Seq[HttpRequestBase] = null
   def shpToRequest(path:String, shp: Shp) = {
     val filePath = "file://"+shp.path
-    val datastoreJson:JObject = ("dataStore" -> {
-      ("name" -> shp.realName) ~
-      ("connectionParameters" -> {
-        ("url" -> filePath) ~ 
-        ("charset" -> shp.charset)})})
+    val datastoreJson:JObject = (dataStore -> {
+      (Store.name -> shp.realName) ~
+      (Store.description -> shp.description) ~
+      (Store.connectionParameters -> {
+        (Store.url -> filePath) ~ 
+        (Store.charset -> shp.charset)})})
 
     List(post(path+"/datastores",datastoreJson))
   }
   def postgisToRequest(path:String, postgis: Postgis): Seq[HttpRequestBase] = {
-    import Postgis._
-    import Keys._
+    import c2c.geoserver.conf.Postgis._
     val datastoreJson:JObject =
       (dataStore -> {
         (Store.name -> postgis.realName) ~
@@ -95,12 +96,23 @@ class RestRequestBuilder(implicit baseURL: URL, credentials: UsernamePasswordCre
         })
       })
 
-      println(pretty(render(datastoreJson)))
     List(post(path+"/datastores",datastoreJson))
   }
-  def databaseToRequest(path:String, database: Database): Seq[HttpRequestBase] = null
+  /*def databaseToRequest(path:String, database: Database): Seq[HttpRequestBase] = null
   def tableToRequest(path:String, table: Table): Seq[HttpRequestBase] = null
-  def createTableToRequest(path:String, table: CreateTable): Seq[HttpRequestBase] = null
-  def rasterToRequest(path:String, raster: Raster): Seq[HttpRequestBase] = null
+  def createTableToRequest(path:String, table: CreateTable): Seq[HttpRequestBase] = null*/
+  def rasterToRequest(path: String, raster: Raster): Seq[HttpRequestBase] = {
+    val filePath = "file://" + raster.path
+    val `type` = raster.getClass.getSimpleName
+    
+    val datastoreJson: JObject = (coverageStore -> {
+      (Store.name -> raster.realName) ~
+      (Store.description -> raster.description) ~
+      (Store.enabled -> raster.enabled.getOrElse(true).toString) ~
+      (Store.`type` -> `type`) ~
+      (Store.url -> filePath)})
+    List(post(path + "/coveragestores", datastoreJson))
+  }
+
   def layerToRequest(path:String, layer: Layer): Seq[HttpRequestBase] = null
 }

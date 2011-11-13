@@ -2,10 +2,15 @@ package c2c.geoserver.conf.version21x
 
 object Keys {
   val dataStore = "dataStore"
+  val coverageStore = "coverageStore"
   object Store {
     val name = "name"
     val description = "description"
     val connectionParameters = "connectionParameters"
+    val url = "url"
+    val charset = "charset"
+    val enabled = "enabled"
+    val `type` = "type"
   }
   object Postgis {
     val dbtype = "dbtype"

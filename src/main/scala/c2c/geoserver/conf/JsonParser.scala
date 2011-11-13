@@ -6,7 +6,9 @@ import Serialization.{read, write}
 object JsonParser {
 //  implicit val parseFormats = DefaultFormats // Brings in default date formats etc
   private[this] implicit val serializationFormats = Serialization.formats(
-      ShortTypeHints(List(classOf[Shp], classOf[ShpDir], classOf[Postgis], classOf[Database], classOf[Raster])))
+      ShortTypeHints(List(classOf[Shp], classOf[ShpDir], classOf[Postgis], 
+          classOf[GeoTIFF], classOf[ImageMosaic], classOf[ECW], classOf[Gtopo30], 
+          classOf[Gtopo30], classOf[WMS], classOf[Arcgrid], classOf[WorldImage])))
       
   def parse[T <: JsonElem : Manifest](jsonString: String) = {
     read[T](jsonString)

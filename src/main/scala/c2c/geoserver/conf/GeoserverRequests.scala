@@ -79,7 +79,7 @@ object GeoserverJson {
     def toRef(implicit baseURL: URL, credentials: UsernamePasswordCredentials) = new WorkspaceRef(name, href)
   }
   class WorkspaceRef(val name: String, val href: String)(implicit baseURL: URL, credentials: UsernamePasswordCredentials) extends Ref[Workspace]("workspace") {
-    def datastores = {
+    lazy val datastores = {
       val option = resolved.map { r =>
         val get = Requests.get(r.dataStores)
         val response = Requests.executeOne(get)
@@ -89,7 +89,7 @@ object GeoserverJson {
       }
       option.getOrElse(Nil)
     }
-    def coverageStores = {
+    lazy val coverageStores = {
       val option = resolved.map { r =>
         val get = Requests.get(r.coverageStores)
         val response = Requests.executeOne(get)
@@ -106,7 +106,7 @@ object GeoserverJson {
     def toRef(implicit baseURL: URL, credentials: UsernamePasswordCredentials) = new DatastoreRef(name, href)
   }
   class DatastoreRef(val name: String, val href: String)(implicit baseURL: URL, credentials: UsernamePasswordCredentials) extends Ref[Datastore]("dataStore") {
-    def featureTypes = {
+    lazy val featureTypes = {
       val option = resolved.map { r =>
         val get = Requests.get(r.featureTypes)
         val response = Requests.executeOne(get)
@@ -117,18 +117,20 @@ object GeoserverJson {
       option.getOrElse(Nil)
     }
   }
-  case class Datastore(name: String, description:Option[String], enabled: Boolean, workspace: WorkspaceRawRef, connectionParameters: JObject, __default: Boolean, featureTypes: String) {
-    lazy val params:Map[String,String] = {
-      if((connectionParameters \ "entry" \ "@key" \ classOf[JField]).nonEmpty) geoserver212Params(connectionParameters)
-      else Map[String,String]()
-    }
-    def geoserver212Params(connectionParameters: JObject) = {
+  private def toParams(connectionParameters: JObject) = {
+    def geoserverParams(connectionParameters: JObject) = {
       val entries = 
         (connectionParameters \ "entry").extract[List[Map[String,String]]].map { map =>
           map("@key") -> map("$")
         }
       entries.toMap
     }
+    
+    if((connectionParameters \ "entry" \ "@key" \ classOf[JField]).nonEmpty) geoserverParams(connectionParameters)
+    else Map[String,String]()
+  }
+  case class Datastore(name: String, description:Option[String], enabled: Boolean, workspace: WorkspaceRawRef, connectionParameters: JObject, __default: Boolean, featureTypes: String) {
+    lazy val params:Map[String,String] = toParams(connectionParameters) 
   }
 
   case class FeatureTypeRawRef(name: String, href: String) {
@@ -169,7 +171,7 @@ object GeoserverJson {
       option.getOrElse(Nil)
     }
   }
-  case class CoverageStore(name: String, `type`: String, enabled: Boolean, workspace: WorkspaceRawRef, __default: Boolean, url: String, coverages: String)
+  case class CoverageStore(name: String, description:Option[String], `type`: String, enabled: Boolean, workspace: WorkspaceRawRef, __default: Boolean, url: String, coverages: String)
 
   case class CoverageRawRef(name: String, href: String) {
     def toRef(implicit baseURL: URL, credentials: UsernamePasswordCredentials) = new CoverageRef(name, href)
@@ -179,7 +181,7 @@ object GeoserverJson {
     name: String, nativeName: String, namespace: FeatureTypeNamespace, title: String, description: String,
     keywords: Keywords, /*nativeCRS: Option[String],nativeBoundingBox:NativeBBox*/ latLonBoundingBox: BBox,
     enabled: Boolean, metadata: JObject, store: FeatureTypeRawRef, grid: Grid, supportedFormats: Formats, interpolationMethods: InterpolationMethods,
-    defaultInterpolationMethod: String, dimensions: Dimensions, requestSRS: SRSList, responseSRS: SRSList)
+    defaultInterpolationMethod: String, dimensions: Dimensions, requestSRS: SRSList, responseSRS: SRSList) 
 
   case class Grid(`@dimension`: String, range: HiLowRange, transform: Transform, crs: String) { val dimension = `@dimension` }
   case class HiLowRange(low: String, high: String)
