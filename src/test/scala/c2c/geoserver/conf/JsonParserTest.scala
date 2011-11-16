@@ -12,7 +12,7 @@ class JsonParserTest extends Specification {
 
   def parseJson = {
     val conf = """
-	{
+{
     "styles": [
     {
         "name": "roads",
@@ -22,26 +22,31 @@ class JsonParserTest extends Specification {
     {
         "name": "background",
         "srs": "EPSG:4326",
-        "bounds": "0,0,30,30",
+        "bounds": [0, 0, 30, 30],
         "layers": ["roads", "regions"]
     }],
     "workspaces": [{
-    "name": "edit",
-    "uri": "http://camptocamp.com/edit",
-    "default": false,
-    "stores": [{
-        "jsonClass": "Shp",
-        "path": "/shp/roads.shp",
-        "charSet": "UTF-8"
-    },
-    {
-        "jsonClass": "ShpDir",
-        "path": "/shp/countries.shp",
-        "configureAll": false,
-        "charSet": "UTF-8"
+        "name": "edit",
+        "uri": "http://camptocamp.com/edit",
+        "default": false,
+        "stores": [{
+            "jsonClass": "Shp",
+            "path": "/shp/roads.shp",
+            "charSet": "UTF-8",
+        },
+        {
+            "jsonClass": "ShpDir",
+            "path": "/shp",
+            "configureAll": false,
+            "charSet": "UTF-8",
+            "layers": [
+            {
+                "name": "countries"
+            }]
+        }]
     }]
-}]
-}"""
+}
+"""
     val model = JsonParser.parseConfiguration(conf)
     (model.layergroups must haveSize(1)) and
       (model.styles must haveSize(1)) and

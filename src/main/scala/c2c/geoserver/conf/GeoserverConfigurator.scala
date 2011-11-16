@@ -8,12 +8,12 @@ class GeoserverConfigurator(username: String, password: String, geoserverRestUrl
   implicit val credentials = new UsernamePasswordCredentials(username, password)
 
   val (configParamExtractor, requestBuilder) = geoserverVersion match {
-    case ver if ver startsWith "2.1" => (version21x.ConfigParamExtractor, new version21x.RestRequestBuilder)
+    case ver if ver startsWith "2.1" => (version21x.ConfigParamExtractor, (new version21x.RestRequestBuilder).toRequest("")_)
     case ver => throw new IllegalArgumentException(ver+" is not a supported Geoserver version")
   }
   def configure(conf: Configuration) = {
     println("Configuring Geoserver: "+geoserverRestUrl+" with configuration:\n"+JsonParser.serializeConfiguration(conf))
-    val requests = conf.workspaces.flatMap(requestBuilder.toRequest(""))
+    val requests = conf.styles.flatMap(requestBuilder) ++ conf.workspaces.flatMap(requestBuilder)
     executeMany(requests)
   }
 
@@ -25,18 +25,18 @@ class GeoserverConfigurator(username: String, password: String, geoserverRestUrl
         new Workspace(
           name = ws.name,
           uri = uriMapping.get(ws.name).map(_.uri),
-          stores = dataStores(ws) ++ coverageStores(ws))
+          stores = stores(ws))
       }
     Configuration(workspaces = ws)
   }
 
-  def dataStores(ws: GeoserverJson.WorkspaceRef): List[Store] = {
+  def stores(ws: GeoserverJson.WorkspaceRef): List[Store] = {
     import configParamExtractor._
     for{
-      ds <- ws.datastores ++ ws.coverageStores
-      resolved <- ds.resolved
+      storeRef <- ws.datastores ++ ws.coverageStores
+      ds <- storeRef.resolved
     } yield {
-      resolved match {
+      ds match {
         case Shp(shp) => shp
         case ShpDir(dir) => dir 
         case Postgis(postgis) => postgis 
@@ -45,18 +45,14 @@ class GeoserverConfigurator(username: String, password: String, geoserverRestUrl
       }
     }
   }
-  def coverageStores(ws: GeoserverJson.WorkspaceRef): List[Store] = {
-Nil // NOT FINISHED
-  }
   def clearConfig() = {
     import GeoserverRequests._
     val lgReq = layergroups map { lg => delete(lg.href) }
     val layerReq = layers map { l => delete(l.href) }
-    val wsReq = workspaces map { workspace =>
-      /*val dsReq = workspace.datastores flatMap { ds => ds.featureTypes.map(ft => delete(ft.href)) :+ delete(ds.href) }
+    val wsReq = workspaces flatMap { workspace =>
+      val dsReq = workspace.datastores flatMap { ds => ds.featureTypes.map(ft => delete(ft.href)) :+ delete(ds.href) }
       val csReq = workspace.coverageStores flatMap { cs => cs.coverages.map(c => delete(c.href)) :+ delete(cs.href) }
-      dsReq ++ csReq :+*/ 
-      delete(workspace.href,"recurse" -> true)
+      dsReq ++ csReq :+ delete(workspace.href,"recurse" -> true)
     }
 
     val styleReq = styles map { s => delete(s.href) }

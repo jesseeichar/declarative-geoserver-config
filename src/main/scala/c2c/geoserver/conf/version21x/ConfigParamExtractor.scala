@@ -16,47 +16,72 @@ object ConfigParamExtractor {
       val params = ds.params
       params.get("url").filter(_.endsWith(".shp")).map { shpUrl =>
         val path = urlToPath(shpUrl)
-        rconf.Shp(name = Some(ds.name), description = ds.description, path = path, charset = params.get("charset"))
+        rconf.Shp(
+            name = Some(ds.name), 
+            description = ds.description, 
+            path = path, 
+            charset = params.get("charset"),
+            layers = ds.parent.featureTypes.flatMap(_.resolved) map {case VectorLayer(layer) => layer})
       }
 
     }
   }
   object Raster {
-    private def name[M](implicit m: Manifest[M]) = {
-      val name = m.erasure.getSimpleName()
-      if(name.endsWith("$")) name.dropRight(1)
-      else name
-    } 
     def unapply(ds: GeoserverJson.CoverageStore): Option[rconf.Raster] = {
       ds.`type` match {
-        case t if t == name[rconf.GeoTIFF] => 
-          Some(rconf.GeoTIFF(name = Some(ds.name), description = ds.description, path = urlToPath(ds.url))) 
-        case t if t == name[rconf.Gtopo30] => 
-          Some(rconf.Gtopo30(name = Some(ds.name), description = ds.description, path = urlToPath(ds.url))) 
-        case t if t == name[rconf.ECW] => 
-          Some(rconf.ECW(name = Some(ds.name), description = ds.description, path = urlToPath(ds.url))) 
-        case t if t == name[rconf.ImageMosaic] => 
-          Some(rconf.ImageMosaic(name = Some(ds.name), description = ds.description, path = urlToPath(ds.url))) 
-        case t if t == name[rconf.WorldImage] => 
-          Some(rconf.WorldImage(name = Some(ds.name), description = ds.description, path = urlToPath(ds.url))) 
-        case t if t == name[rconf.Arcgrid] => 
-          Some(rconf.Arcgrid(name = Some(ds.name), description = ds.description, path = urlToPath(ds.url))) 
-        case t if t == name[rconf.WMS] => 
-          Some(rconf.WMS(name = Some(ds.name), description = ds.description, path = urlToPath(ds.url))) 
+        case t if t == className[rconf.GeoTIFF] => 
+          Some(rconf.GeoTIFF(
+              name = Some(ds.name), 
+              description = ds.description, 
+              path = urlToPath(ds.url))) 
+        case t if t == className[rconf.Gtopo30] => 
+          Some(rconf.Gtopo30(
+              name = Some(ds.name), 
+              description = ds.description, 
+              path = urlToPath(ds.url))) 
+        case t if t == className[rconf.ECW] => 
+          Some(rconf.ECW(
+              name = Some(ds.name), 
+              description = ds.description, 
+              path = urlToPath(ds.url))) 
+        case t if t == className[rconf.ImageMosaic] => 
+          Some(rconf.ImageMosaic(
+              name = Some(ds.name), 
+              description = ds.description, 
+              path = urlToPath(ds.url))) 
+        case t if t == className[rconf.WorldImage] => 
+          Some(rconf.WorldImage(
+              name = Some(ds.name), 
+              description = ds.description, 
+              path = urlToPath(ds.url))) 
+        case t if t == className[rconf.ArcGrid] => 
+          Some(rconf.ArcGrid(
+              name = Some(ds.name), 
+              description = ds.description, 
+              path = urlToPath(ds.url))) 
+        case t if t == className[rconf.WMS] => 
+          Some(rconf.WMS(
+              name = Some(ds.name), 
+              description = ds.description, 
+              path = urlToPath(ds.url))) 
+        case t if t == className[rconf.JP2ECW] => 
+          Some(rconf.JP2ECW(
+              name = Some(ds.name), 
+              description = ds.description, 
+              path = urlToPath(ds.url))) 
       }
-      
     }
-  }
-  object GeoTIFF {
-	  def unapply(ds: GeoserverJson.CoverageStore): Option[rconf.GeoTIFF] = {
-			  Some(rconf.GeoTIFF(name = Some(ds.name), description = ds.description, path = urlToPath(ds.url)))
-	  }
   }
   object ShpDir {
     def unapply(ds: GeoserverJson.Datastore): Option[rconf.ShpDir] = {
       val params = ds.params
       params.get("url").filter(url => url.startsWith(filePrefix) && Path(new URI(url).getPath()).isDirectory).map { shpDir =>
-        rconf.ShpDir(name = Some(ds.name), description = ds.description, path = urlToPath(shpDir), charset = params.get("charset"))
+        rconf.ShpDir(
+            name = Some(ds.name), 
+            description = ds.description, 
+            path = urlToPath(shpDir), 
+            charset = params.get("charset"),
+            layers = ds.parent.featureTypes.flatMap(_.resolved) map {case VectorLayer(layer) => layer})
       }
 
     }
@@ -84,9 +109,20 @@ object ConfigParamExtractor {
           fetchSize = params.get(fetchSize).map(_.toInt),
           maxPreparedStatements = params.get(maxPreparedStatements).map(_.toInt),
           preparedStatements = params.get(preparedStatements).map(_.toBoolean),
-          estimateExtents = params.get(estimateExtents).map(_.toBoolean))
+          estimateExtents = params.get(estimateExtents).map(_.toBoolean),
+          layers = ds.parent.featureTypes.flatMap(_.resolved) map {case VectorLayer(layer) => layer})
       }
-
+    }
+  }
+  
+  object VectorLayer {
+    def unapply(featureType:GeoserverJson.FeatureType):Option[rconf.VectorLayer] = {
+      import featureType.{latLonBoundingBox => bbox}
+      Some(rconf.VectorLayer(
+          name = Some(featureType.name),
+          nativeName = Some(featureType.nativeName),
+          srs = Some(bbox.crs),
+          bbox = List(bbox.minx.toDouble, bbox.miny.toDouble, bbox.maxx.toDouble, bbox.maxy.toDouble)))
     }
   }
 }

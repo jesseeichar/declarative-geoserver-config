@@ -3,8 +3,12 @@ package c2c.geoserver.conf.version21x
 object Keys {
   val dataStore = "dataStore"
   val coverageStore = "coverageStore"
+  val style = "style"
+  val featureType = "featureType"
+  object Common {
+	  val name = "name"
+  }
   object Store {
-    val name = "name"
     val description = "description"
     val connectionParameters = "connectionParameters"
     val url = "url"
@@ -31,5 +35,11 @@ object Keys {
     val maxPreparedStatements = "Max open prepared statements"
     val preparedStatements = "preparedStatements"
     val estimateExtents = "Estimated extends"
+  }
+  object Style {
+    val filename = "filename"
+  }
+  object Layer {
+    
   }
 }
