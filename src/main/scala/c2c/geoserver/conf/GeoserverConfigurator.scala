@@ -7,8 +7,11 @@ class GeoserverConfigurator(username: String, password: String, geoserverRestUrl
   implicit val baseURL = new URL(geoserverRestUrl)
   implicit val credentials = new UsernamePasswordCredentials(username, password)
 
-  val (configParamExtractor, requestBuilder) = geoserverVersion match {
-    case ver if ver startsWith "2.1" => (version21x.ConfigParamExtractor, (new version21x.RestRequestBuilder).toRequest("")_)
+  val (configParamExtractor, requestBuilder, geoserverRequests) = geoserverVersion match {
+    case ver if ver startsWith "2.1" => 
+      (new version21x.ConfigParamExtractor(), 
+          (new version21x.RestRequestBuilder).toRequest("")_, 
+          version21x.GeoserverRequests:GeoserverRequests)
     case ver => throw new IllegalArgumentException(ver+" is not a supported Geoserver version")
   }
   def configure(conf: Configuration) = {
@@ -17,36 +20,10 @@ class GeoserverConfigurator(username: String, password: String, geoserverRestUrl
     executeMany(requests)
   }
 
-  def readConfiguration: Configuration = {
-    import GeoserverRequests._
-    val uriMapping = namespaces.flatMap { _.resolved.map(ns => ns.prefix -> ns) }.toMap
-    val ws =
-      workspaces map { ws =>
-        new Workspace(
-          name = ws.name,
-          uri = uriMapping.get(ws.name).map(_.uri),
-          stores = stores(ws))
-      }
-    Configuration(workspaces = ws)
-  }
+  def readConfiguration: Configuration = configParamExtractor.extractConfig()
 
-  def stores(ws: GeoserverJson.WorkspaceRef): List[Store] = {
-    import configParamExtractor._
-    for{
-      storeRef <- ws.datastores ++ ws.coverageStores
-      ds <- storeRef.resolved
-    } yield {
-      ds match {
-        case Shp(shp) => shp
-        case ShpDir(dir) => dir 
-        case Postgis(postgis) => postgis 
-        case Raster(raster) => raster 
-        // NOT FINISHED
-      }
-    }
-  }
   def clearConfig() = {
-    import GeoserverRequests._
+    import geoserverRequests._
     val lgReq = layergroups map { lg => delete(lg.href) }
     val layerReq = layers map { l => delete(l.href) }
     val wsReq = workspaces flatMap { workspace =>

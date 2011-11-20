@@ -131,11 +131,29 @@ class RestRequestBuilder(implicit baseURL: URL, credentials: UsernamePasswordCre
     post(path+"/coveragestores",coveragestoreJson) +: raster.layers.flatMap(toRequest(updatedPath))
   }
 
+  private def encodeBounds(bbox:List[Double]) = if(bbox.nonEmpty) {
+        Some({
+          ("minx" -> bbox(0)) ~
+          ("miny" -> bbox(1)) ~
+          ("maxx" -> bbox(2)) ~
+          ("maxy" -> bbox(3))
+        })
+      } else {
+        None
+      } 
   def vectorLayerToRequest(path:String, layer: VectorLayer): Seq[HttpRequestBase] = {
+
     val layerJson: JObject = (featureType -> {
-      ("name" -> layer.name) ~
-      ("nativeName" -> layer.nativeName)
+      ("name" -> layer.realName) ~
+      ("nativeName" -> layer.nativeName) ~
+      ("title" -> layer.title) ~
+      ("abstract" -> layer.`abstract`) ~
+      ("nativeCRS" -> layer.srs) ~
+      ("nativeBoundingBox" -> encodeBounds(layer.bbox)) ~
+      ("latLongBoundingBox" -> encodeBounds(layer.llbbox))
     })
+    
+    println(pretty(render(layerJson)))
     
     List(post(path+"/featuretypes", layerJson))
   }

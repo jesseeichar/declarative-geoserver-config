@@ -9,6 +9,7 @@ import net.liftweb.json._
 import org.apache.http.auth.UsernamePasswordCredentials
 import scalax.file.Path
 import org.specs2.execute.Result
+import scala.xml.XML
 
 @RunWith(classOf[JUnitRunner])
 class GeoserverConfiguratorIntegrationTest extends IntegrationSpec {
@@ -73,12 +74,14 @@ class GeoserverConfiguratorIntegrationTest extends IntegrationSpec {
 		    "exposePrimaryKeys": true,
 		    "estimateExtents": true,
 		    "database": "geocat",
-		    "layers": [
-		  		{
+		    "layers": [{
 		  			"name": "switzerland",
 		  			"nativeName": "countries",
+		  			"title": "the title",
+		  			"abstract": "the abstract",
 		  			"srs": "EPSG:21781",
-		  			"bbox": [485000, 75000, 833000, 296000]}]},
+		  			"bbox": [485000, 75000, 833000, 296000],
+		  			"llbbox": [5.9, 45.79, 10.5, 47.8]}]},
       {
 		    "jsonClass": "GeoTIFF",
 		    "name": "SpecGeoTIFF",
@@ -98,11 +101,23 @@ class GeoserverConfiguratorIntegrationTest extends IntegrationSpec {
         (ws.stores must haveTheSameElementsAs(config.workspaceMap(ws.name).stores)) and
         	(ws.uri must_== config.workspaceMap(ws.name).uri)
     }
+    
+    println(readConfig.styleMap)
+    val styles = config.styleMap.collect {
+      case (name,style) if readConfig.styleMap contains name => 
+	      val readSld = readConfig.styleMap.get(name).flatMap(_.resource).get.slurpString
+	      val expectedSld = style.resource.get.slurpString
+	      XML.loadString(readSld) must beEqualToIgnoringSpace (XML.loadString(expectedSld))
+    }
+
+    
     (stores must haveSize(config.workspaces.size)) and
+    (styles must haveSize(config.styles.size)) and
+      (styles.foldLeft(success: Result) { (acc, next) => acc and next }) and
       (stores.foldLeft(success: Result) { (acc, next) => acc and next })
   }
   def clear = {
     configurator.clearConfig()
-    GeoserverRequests.workspaces must beEmpty
+    configurator.geoserverRequests.workspaces must beEmpty
   }
 }

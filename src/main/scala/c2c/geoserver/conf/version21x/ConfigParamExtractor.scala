@@ -4,12 +4,51 @@ package version21x
 import c2c.geoserver.{ conf => rconf }
 import java.net.URI
 import scalax.file.Path
+import org.apache.http.auth.UsernamePasswordCredentials
+import java.net.URL
+import scalax.io.Resource
 
-object ConfigParamExtractor {
+class ConfigParamExtractor(implicit baseURL: URL, credentials: UsernamePasswordCredentials) {
   val filePrefix = "file://"
   def urlToPath(url: String) = url match {
     case shpUrl if shpUrl startsWith filePrefix => shpUrl drop filePrefix.size
     case _ => url
+  }
+  def extractConfig() = {
+    import GeoserverRequests._
+    val uriMapping = GeoserverRequests.namespaces.flatMap { _.resolved.map(ns => ns.prefix -> ns.uri) }.toMap
+    val ws = GeoserverRequests.workspaces map { ws => Workspace.create(uriMapping, ws)}
+    val styles = GeoserverRequests.styles map { style => Style.create(style)}
+    Configuration(workspaces = ws, styles = styles)
+  }
+
+  object Style {
+    def create(ref:GeoserverJson.StyleRef) = {
+      val sld = ref.href.dropRight("json".size)+"sld"
+      rconf.Style(ref.name, filename=Some(ref.resolved.get.filename),url = Some(sld))
+    }
+  }
+  object Workspace {
+    def create(uriMapping:Map[String,String], ws:GeoserverJson.WorkspaceRef):rconf.Workspace = {
+      rconf.Workspace(
+          name = ws.name,
+          uri = uriMapping.get(ws.name),
+          stores = stores(ws))
+    }
+  def stores(ws: GeoserverJson.WorkspaceRef): List[Store] = {
+    for{
+      storeRef <- ws.datastores ++ ws.coverageStores
+      ds <- storeRef.resolved
+    } yield {
+      ds match {
+        case Shp(shp) => shp
+        case ShpDir(dir) => dir 
+        case Postgis(postgis) => postgis 
+        case Raster(raster) => raster 
+        // NOT FINISHED
+      }
+    }
+  }
   }
   object Shp {
     def unapply(ds: GeoserverJson.Datastore): Option[rconf.Shp] = {
@@ -117,12 +156,15 @@ object ConfigParamExtractor {
   
   object VectorLayer {
     def unapply(featureType:GeoserverJson.FeatureType):Option[rconf.VectorLayer] = {
-      import featureType.{latLonBoundingBox => bbox}
+      import featureType.{nativeBoundingBox => bbox, latLonBoundingBox => llbbox}
       Some(rconf.VectorLayer(
           name = Some(featureType.name),
           nativeName = Some(featureType.nativeName),
-          srs = Some(bbox.crs),
-          bbox = List(bbox.minx.toDouble, bbox.miny.toDouble, bbox.maxx.toDouble, bbox.maxy.toDouble)))
+          title = featureType.title,
+          `abstract` = featureType.`abstract`,
+          srs = featureType.srs,
+          bbox = List(bbox.minx.toDouble, bbox.miny.toDouble, bbox.maxx.toDouble, bbox.maxy.toDouble),
+          llbbox = List(llbbox.minx.toDouble, llbbox.miny.toDouble, llbbox.maxx.toDouble, llbbox.maxy.toDouble)))
     }
   }
 }

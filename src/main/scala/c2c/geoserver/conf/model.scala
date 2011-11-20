@@ -1,6 +1,9 @@
 package c2c.geoserver.conf
 import scalax.io.{Codec, Resource, Input}
 import scalax.file.Path
+import Postgis._
+import org.apache.http.auth.UsernamePasswordCredentials
+import java.net.URL
 
 trait JsonElem
 sealed trait ConfigElem extends JsonElem
@@ -8,7 +11,9 @@ case class Configuration(
   workspaces: List[Workspace] = Nil,
   styles: List[Style] = Nil,
   layergroups: List[LayerGroup] = Nil) extends ConfigElem {
-  val workspaceMap = workspaces.map { (ws: Workspace) => ws.name -> ws }.toMap
+  lazy val workspaceMap = workspaces.map { (ws: Workspace) => ws.name -> ws }.toMap
+  lazy val styleMap = styles.map { (s: Style) => s.name -> s }.toMap
+  lazy val layerGroupMap = layergroups.map { (lg: LayerGroup) => lg.name -> lg }.toMap
 }
 
 case class Workspace(name: String, uri: Option[String] = None, stores: List[Store]) extends ConfigElem
@@ -42,7 +47,7 @@ object Postgis {
   val defaultPreparedStatements = false
   val defaultEstimatedExtents = true
 }
-import Postgis._
+
 case class Postgis(
   name: Option[String],
   description: Option[String],
@@ -92,7 +97,19 @@ case class ArcGrid(name: Option[String] = None, description: Option[String] = No
 case class Gtopo30(name: Option[String] = None, description: Option[String] = None, path: String, enabled: Option[Boolean] = Some(true), layers: List[RasterLayer] = Nil) extends Raster
 case class WMS(name: Option[String] = None, description: Option[String] = None, path: String, enabled: Option[Boolean] = Some(true), layers: List[RasterLayer] = Nil) extends Raster
 
-case class VectorLayer(name: Option[String], nativeName: Option[String], srs:Option[String], bbox:List[Double]) extends ConfigElem
+/**
+ * 
+ * @param name the name of the layer.  Does not have to be the same as the actual data (table in postgis for example).  
+ * 		  If it is not the same then nativeName has to be defined.  The exception is if there is only one possible featuretype
+ * 		  for the store (like for a shapefile).
+ * @param is not required if name == nativeName or if there is only one possible type (like for a shapefile)
+ */
+case class VectorLayer(
+    name: Option[String] = None, nativeName: Option[String] = None, title:Option[String] = None, `abstract`:Option[String] = None, 
+    srs:Option[String] = None, bbox:List[Double] = Nil,
+    llbbox:List[Double]=Nil) extends ConfigElem {
+  def realName = name orElse nativeName 
+}
 case class RasterLayer(name: Option[String], nativeName: Option[String]) extends ConfigElem
 
 case class LayerGroup(name: String, srs: String, bounds: List[Double], layers: List[String] = Nil) extends ConfigElem
@@ -106,6 +123,9 @@ case class LayerGroup(name: String, srs: String, bounds: List[Double], layers: L
  * @url a url for loading the sld.  Only one of url or path should be used.  
  * @path the path to the file of the sld.  The contents of the file will be uploaded to the server
  */
-case class Style(name: String, filename: Option[String], url: Option[String], path: Option[String]) extends ConfigElem {
-  val resource:Option[Input] = url.map(u => Resource.fromURL(u):Input) orElse path.map(f => Resource.fromFile(f):Input)
+case class Style(name: String, filename: Option[String] = None, url: Option[String] = None, path: Option[String] = None) extends ConfigElem {
+  private def urlInputStream(implicit baseURL: URL, credentials: UsernamePasswordCredentials) = 
+    url.map(u => Requests.get(u)).map(Requests executeOne).map(_.getEntity().getContent())  
+  def resource(implicit baseURL: URL, credentials: UsernamePasswordCredentials):Option[Input] = 
+    url.map(u => Resource.fromInputStream(urlInputStream.get):Input) orElse path.map(f => Resource.fromFile(f):Input)
 }

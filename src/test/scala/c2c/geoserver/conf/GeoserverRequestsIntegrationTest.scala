@@ -4,10 +4,11 @@ import org.specs2.Specification
 import org.specs2.execute.Result
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
-import GeoserverJson._
+import version21x.{GeoserverRequests => GSRequests}
+import version21x.GeoserverJson._
 
 @RunWith(classOf[JUnitRunner])
-class GeoserverRequestsIntegrationTest extends IntegrationSpec {
+class RequestsIntegrationTest extends IntegrationSpec {
   def is =
     "Geoserserver Response JSON parsing".title ^
       "A Geoserver workspaces request should parse out into several workspaces" ! workspacesRequest ^
@@ -27,15 +28,15 @@ class GeoserverRequestsIntegrationTest extends IntegrationSpec {
       "A Geoserver layergroup request should parse out into several layergroups" ! layergroupsRequest ^ 
       "A layergroup can be resolved to load the information of that layergroup" ! resolveLayerGroups
 
-  lazy val workspaces = GeoserverRequests.workspaces
-  lazy val namespaces = GeoserverRequests.namespaces
+  lazy val workspaces = GSRequests.workspaces
+  lazy val namespaces = GSRequests.namespaces
   lazy val datastores = workspaces.flatMap{_.datastores}
   lazy val featuretypes = datastores.flatMap{_.featureTypes}
   lazy val coverageStores = workspaces.flatMap{_.coverageStores}
   lazy val coverages = coverageStores.flatMap{_.coverages}
-  lazy val styles = GeoserverRequests.styles
-  lazy val layers = GeoserverRequests.layers
-  lazy val layergroups = GeoserverRequests.layergroups
+  lazy val styles = GSRequests.styles
+  lazy val layers = GSRequests.layers
+  lazy val layergroups = GSRequests.layergroups
   
   def workspacesRequest = workspaces must not beEmpty
   def resolveWorkspaces = forall[WorkspaceRef](workspaces,ws => ws.resolved.map(_.name) +" != "+ws.name, ws => ws.resolved.forall(_.name == ws.name))
