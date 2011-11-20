@@ -149,7 +149,8 @@ class RestRequestBuilder(implicit baseURL: URL, credentials: UsernamePasswordCre
       ("title" -> layer.title) ~
       ("abstract" -> layer.`abstract`) ~
       ("nativeCRS" -> layer.srs) ~
-      ("nativeBoundingBox" -> encodeBounds(layer.bbox))
+      ("nativeBoundingBox" -> encodeBounds(layer.bbox)) ~
+      ("latLonBoundingBox" -> encodeBounds(layer.llbbox))
     })
     
     println(pretty(render(layerJson)))
